@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fumper - Jeu Web HTML5</title>
+    <link rel="icon" type="image/png" href="assets/texture/framboise.png">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #121820 0%, #1a2634 50%, #0d131a 100%);
+            color: #f0f4f8;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .game-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #embed-html {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            display: block;
+            outline: none;
+            touch-action: none;
+        }
+
+        /* Loading Overlay */
+        #loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(18, 24, 32, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            transition: opacity 0.5s ease;
+        }
+
+        #loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #ff5252;
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #ffffff;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .loading-subtitle {
+            font-size: 0.9rem;
+            color: #90a4ae;
+        }
+
+        /* Responsive controls banner below game */
+        .game-footer {
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: #78909c;
+            text-align: center;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .game-footer span {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: #ffab40;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-wrapper" id="game-container">
+        <div id="loading-overlay">
+            <div class="spinner"></div>
+            <div class="loading-title">FUMPER</div>
+            <div class="loading-subtitle">Chargement du jeu en cours...</div>
+        </div>
+
+        <div align="center" id="embed-html"></div>
+    </div>
+
+    <div class="game-footer">
+        <span>🎮 Souris / Tactile pour attraper les fruits</span>
+        <span class="badge">HTML5</span>
+    </div>
+
+    <script type="text/javascript">
+        // Watch for canvas insertion to hide loading overlay
+        const observer = new MutationObserver(function(mutations, obs) {
+            const canvas = document.querySelector("#embed-html canvas");
+            if (canvas) {
+                const overlay = document.getElementById("loading-overlay");
+                if (overlay) {
+                    overlay.classList.add("hidden");
+                    setTimeout(() => overlay.remove(), 600);
+                }
+                obs.disconnect();
+            }
+        });
+        observer.observe(document.getElementById("embed-html"), { childList: true, subtree: true });
+
+        // Audio Context unlock on first user gesture (modern browser policy)
+        function unlockAudio() {
+            if (window.AudioContext || window.webkitAudioContext) {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (window.__fumperAudioCtx && window.__fumperAudioCtx.state === 'suspended') {
+                    window.__fumperAudioCtx.resume();
+                }
+            }
+            window.removeEventListener('click', unlockAudio);
+            window.removeEventListener('touchstart', unlockAudio);
+        }
+        window.addEventListener('click', unlockAudio);
+        window.addEventListener('touchstart', unlockAudio);
+    </script>
+    <script type="text/javascript" src="html/html.nocache.js"></script>
+</body>
+</html>

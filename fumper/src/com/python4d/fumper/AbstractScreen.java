@@ -228,7 +228,7 @@ public abstract class AbstractScreen implements Screen {
 		         Gdx.files.internal("font/goodgirl.png"), false);
 		this.font_goodgirl3= new BitmapFont(Gdx.files.internal("font/goodgirl.fnt"),
 		         Gdx.files.internal("font/goodgirl.png"), false);
-		this.stage = new Stage(0, 0, true);
+		this.stage = new Stage();
 	}
 
 	protected String getName() {
@@ -239,10 +239,7 @@ public abstract class AbstractScreen implements Screen {
 	public World getWorldbox() {
 		if (worldbox == null) {
 			worldbox = new World(new Vector2(0, -9.8f), true);
-			//permet que aucun object  "ne colle" un peu efficace mais pas totalement!
-			//http://www.badlogicgames.com/wordpress/?p=2030
-			World.setVelocityThreshold(0.0f);
-			//
+			World.setVelocityThreshold(2.0f);
 
 			debugRenderer = new Box2DDebugRenderer(debug, debug, debug, debug,debug, debug);
 		}
@@ -271,12 +268,7 @@ public abstract class AbstractScreen implements Screen {
 			myToast.toaster();
 		//calcul du monde Box
 		if (worldbox != null) {
-			//filter the step world?
-			//http://giderosmobile.com/forum/discussion/383/box-2d-worldstep-fixed-time-steps/p1
-			//http://bitsquid.blogspot.fr/2010/10/time-step-smoothing.html
-			//fdt = Gdx.graphics.getDeltaTime() * 0.4f + fdt * (1 -  0.4f);
-			//worldbox.step(fdt, 6, 3);
-			worldbox.step(1.0f / 60.0f, 1, 1);
+			worldbox.step(1.0f / 60.0f, 8, 3);
 			MatZoom=camera.combined.cpy();
 			if (debug==true)
 				debugRenderer.render(worldbox, MatZoom.scl(BOX_TO_WORLD));
@@ -289,7 +281,7 @@ public abstract class AbstractScreen implements Screen {
 				+ width + " x " + height);
 
 		// resize the stage
-		stage.setViewport(width, height, false);
+		stage.getViewport().update(width, height, false);
 		
 		// Le monde Box2D ne doit pas changer
 		WORLD_TO_BOX = GAME_VIEWPORT_HEIGHT/20000.0f*GAME_VIEWPORT_WIDTH/(float)width;

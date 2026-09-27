@@ -1,0 +1,13 @@
+.gradle/
+build/
+*/build/
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+local.properties
+libs/
+fumper-android/libs/
+fumper-html/war/
+*.log

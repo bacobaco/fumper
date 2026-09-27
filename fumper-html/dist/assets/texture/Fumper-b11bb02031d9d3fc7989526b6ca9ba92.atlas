@@ -1,0 +1,271 @@
+
+Fumper-1.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+autres/fruitjumper
+  rotate: false
+  xy: 2, 2
+  size: 270, 500
+  orig: 270, 500
+  offset: 0, 0
+  index: -1
+autres/splash
+  rotate: false
+  xy: 2, 504
+  size: 400, 400
+  orig: 400, 400
+  offset: 0, 0
+  index: -1
+autres/start
+  rotate: false
+  xy: 404, 674
+  size: 320, 230
+  orig: 320, 230
+  offset: 0, 0
+  index: -1
+autres/tap_finger1
+  rotate: false
+  xy: 726, 754
+  size: 150, 150
+  orig: 150, 150
+  offset: 0, 0
+  index: -1
+autres/tap_finger2
+  rotate: false
+  xy: 404, 522
+  size: 150, 150
+  orig: 150, 150
+  offset: 0, 0
+  index: -1
+autres/tapandplay
+  rotate: false
+  xy: 274, 202
+  size: 149, 300
+  orig: 149, 300
+  offset: 0, 0
+  index: -1
+
+Fumper-2.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+background/background
+  rotate: false
+  xy: 2, 2
+  size: 640, 469
+  orig: 640, 469
+  offset: 0, 0
+  index: -1
+
+Fumper-3.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+bascule/buche_bois
+  rotate: false
+  xy: 644, 2
+  size: 341, 327
+  orig: 341, 327
+  offset: 0, 0
+  index: -1
+bascule/planche
+  rotate: false
+  xy: 2, 9
+  size: 640, 320
+  orig: 640, 320
+  offset: 0, 0
+  index: -1
+
+Fumper-4.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+fruits/cerises
+  rotate: false
+  xy: 2, 2
+  size: 100, 100
+  orig: 100, 100
+  offset: 0, 0
+  index: -1
+fruits/citron
+  rotate: false
+  xy: 104, 2
+  size: 100, 100
+  orig: 100, 100
+  offset: 0, 0
+  index: -1
+fruits/citrouille
+  rotate: false
+  xy: 2, 104
+  size: 150, 150
+  orig: 150, 150
+  offset: 0, 0
+  index: -1
+fruits/fraise
+  rotate: false
+  xy: 154, 154
+  size: 100, 100
+  orig: 100, 100
+  offset: 0, 0
+  index: -1
+fruits/orange
+  rotate: false
+  xy: 256, 154
+  size: 100, 100
+  orig: 100, 100
+  offset: 0, 0
+  index: -1
+fruits/poire
+  rotate: false
+  xy: 358, 154
+  size: 100, 100
+  orig: 100, 100
+  offset: 0, 0
+  index: -1
+fruits/pomme-dessin
+  rotate: false
+  xy: 460, 154
+  size: 100, 100
+  orig: 100, 100
+  offset: 0, 0
+  index: -1
+fruits/pomme-dessin2
+  rotate: false
+  xy: 562, 154
+  size: 100, 100
+  orig: 100, 100
+  offset: 0, 0
+  index: -1
+fruits/pomme-photo
+  rotate: false
+  xy: 664, 154
+  size: 100, 100
+  orig: 100, 100
+  offset: 0, 0
+  index: -1
+fruits/pomme_verte
+  rotate: false
+  xy: 766, 154
+  size: 100, 100
+  orig: 100, 100
+  offset: 0, 0
+  index: -1
+
+Fumper-5.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+objets/fusee
+  rotate: false
+  xy: 2, 2
+  size: 204, 300
+  orig: 204, 300
+  offset: 0, 0
+  index: -1
+objets/fusee1
+  rotate: false
+  xy: 591, 644
+  size: 204, 300
+  orig: 204, 300
+  offset: 0, 0
+  index: -1
+objets/fusee2
+  rotate: false
+  xy: 208, 2
+  size: 204, 300
+  orig: 204, 300
+  offset: 0, 0
+  index: -1
+objets/fusee3
+  rotate: false
+  xy: 591, 342
+  size: 204, 300
+  orig: 204, 300
+  offset: 0, 0
+  index: -1
+objets/fusee4
+  rotate: false
+  xy: 797, 644
+  size: 204, 300
+  orig: 204, 300
+  offset: 0, 0
+  index: -1
+objets/panier
+  rotate: false
+  xy: 2, 304
+  size: 587, 640
+  orig: 587, 640
+  offset: 0, 0
+  index: -1
+
+Fumper-6.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+objets/panier-front
+  rotate: false
+  xy: 2, 2
+  size: 587, 640
+  orig: 587, 640
+  offset: 0, 0
+  index: -1
+
+Fumper-7.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+oiseau/bird1
+  rotate: false
+  xy: 2, 2
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+oiseau/bird2
+  rotate: false
+  xy: 36, 2
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+oiseau/bird3
+  rotate: false
+  xy: 70, 2
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+oiseau/bird4
+  rotate: false
+  xy: 104, 2
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+oiseau/bird5
+  rotate: false
+  xy: 138, 2
+  size: 32, 32
+  orig: 32, 32
+  offset: 0, 0
+  index: -1
+
+Fumper-8.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+splash-screen/helice
+  rotate: false
+  xy: 595, 2
+  size: 200, 200
+  orig: 200, 200
+  offset: 0, 0
+  index: -1
+splash-screen/splash-image
+  rotate: false
+  xy: 2, 22
+  size: 591, 180
+  orig: 591, 180
+  offset: 0, 0
+  index: -1

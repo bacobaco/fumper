@@ -1,39 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.python4d.fumper"
-    android:versionCode="5"
-    android:versionName="1.0" >
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
     
-    <uses-permission 
-        android:name="android.permission.INTERNET"/>
-    <uses-permission
- 		android:name="android.permission.VIBRATE"/>
-    <uses-sdk 
-        android:minSdkVersion="5" 
-        android:targetSdkVersion="20" />
-	<uses-feature
-		android:name = "android.hardware.sensor.accelerometer"
-		android:required = "true" />
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+
+    <uses-feature
+        android:name="android.hardware.sensor.accelerometer"
+        android:required="true" />
+
     <application
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name" 
-        
         android:allowBackup="true">     
-           
-        <meta-data 
-            android:name="com.google.android.gms.version" 
-            android:value="@integer/google_play_services_version" />
-        
-        <activity 
-            android:name="com.google.android.gms.ads.AdActivity" 
-            android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize" />
         
         <activity
             android:name=".MainActivity"
             android:label="@string/app_name"
             android:screenOrientation="portrait"
-            android:configChanges="keyboard|keyboardHidden|screenSize">
+            android:exported="true"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

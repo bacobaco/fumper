@@ -1,0 +1,5 @@
+rootProject.name = 'fumper-project'
+include 'fumper'
+include 'fumper-desktop'
+include 'fumper-android'
+include 'fumper-html'

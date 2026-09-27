@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
@@ -121,11 +122,13 @@ public class Toast {
 
       // we load the desired font
       font[i] = myfont;
-      font[i].setScale(1.0f);//permet de recalculer la taille de base de la font
-      font[i].setScale(Gdx.graphics.getWidth()/font[i].getBounds(string).width/1.1f);
-      font_width[i] = (int) (font[i].getBounds(string).width + margin); // width of the string + margin
+      font[i].getData().setScale(1.0f);//permet de recalculer la taille de base de la font
+      GlyphLayout layout = new GlyphLayout(font[i], string);
+      font[i].getData().setScale(Gdx.graphics.getWidth()/layout.width/1.1f);
+      layout.setText(font[i], string);
+      font_width[i] = (int) (layout.width + margin); // width of the string + margin
       font_height[i] = (int) font[i].getLineHeight() + margin; // height of the string
-      float x_bounds = font[i].getBounds(string).width / 2; // we center the string
+      float x_bounds = layout.width / 2; // we center the string
       float y_bounds = font[i].getLineHeight() + ((font[i].getLineHeight()+margin) * (-i)); // we offset by number of line to display in this Toast
 
       float width = Gdx.graphics.getWidth(); // becare that all calculations are made here, so if screen display resolution change (it happens with android), Strings will display at wrong place

@@ -60,7 +60,7 @@ public class SplashScreen extends AbstractScreen {
 		for (int i=0;i<TypeOfObject.tap_finger.getNbImages();i++){
 			arrayTapFinger.add(getAtlas().findRegion(TypeOfObject.tap_finger.getAllImages()[i]));
 		}
-		Animation tapFinger=new Animation(0.5f,arrayTapFinger,Animation.LOOP);
+		Animation tapFinger=new Animation(0.5f,arrayTapFinger,Animation.PlayMode.LOOP);
 		tapFingerActor=new AnimatedActor(tapFinger);
 		stage.addActor(tapFingerActor);
 		
@@ -191,7 +191,6 @@ public class SplashScreen extends AbstractScreen {
 		fd.density = 1f;
 		getBodyLoader().attachFixture(body, too.getNameBody(), fd,
 				splashImage.getWidth() * AbstractScreen.WORLD_TO_BOX);
-		body.createFixture(fd);
 		Body groundbody = worldbox.createBody(new BodyDef());
 		RevoluteJointDef jd = new RevoluteJointDef();
 		//jd.enableLimit = true;

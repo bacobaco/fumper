@@ -33,6 +33,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.TimeUtils;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.Timer.Task;
 
@@ -68,30 +69,28 @@ public class PlayScreen extends AbstractScreen {
 	
 	private AnimatedActor fusee, oiseau;
 	private Panier panier = null;
-	private TextActor textCopyright,textScore, textHighScore, textGameOver, textStart,textBonus;
+	private TextActor textCopyright,textScore, textHighScore, textGameOver, textStart,textBonus, textInvincible;
+	private Timer scoreTimer;
+	private boolean promptShown = false;
+	private int birdClickCount = 0;
+	private long lastBirdClickTime = 0;
+	private long lastBirdClickTimestamp = 0;
+	private boolean invincible = false;
+	private boolean invincibleUsedInSession = false;
+	private int fruitsInBasketThisLevel = 0;
+
 	public PlayScreen(Fumper game) {
 		super(game);
 		highscore = game.FumperPrefs.getHighScore();
 		highscore_name = new String(game.FumperPrefs.getHighScoreName());
 
-		// Utilisation d'un timer pour lancer un thread FTP toutes les 30
-		// secondes
-		new Timer().scheduleTask(new Task() {
+		// Timer pour rafraichir le high score web toutes les 30 secondes
+		scoreTimer = new Timer();
+		scoreTimer.scheduleTask(new Task() {
 			@Override
 			public void run() {
-
-				new Thread(new Runnable() {
-					@Override
-					public void run() {
-						TestHighScoreWeb(
-								HighScoreWebBox,
-								"Your Local HighScore Kills WebScore's ! What's Your Name Farmer?",
-								"");
-					}
-				}).start();
-
+				refreshWebScore();
 			}
-
 		}, 0, 30);
 	}
 
@@ -102,20 +101,38 @@ public class PlayScreen extends AbstractScreen {
 
 		@Override
 		public void input(String text) {
-			highscoreWEB_name = text.toString();
+			if (text != null && !text.trim().isEmpty()) {
+				highscoreWEB_name = text.trim();
+			}
 
-			String result = new String(new FTPConnect().writefile("fumper.txt",
-					new String[] { "farmer", highscoreWEB_name }, new String[] {
-							"hs", Integer.toString(highscore) }));
-			myToast.makeText(result, font_berlin, 10f);
-			if (!result.startsWith("!"))
-				highscoreWEB = highscore;
+			OnlineScoreService.submitHighScore(highscoreWEB_name, highscore, new OnlineScoreService.SubmitCallback() {
+				@Override
+				public void onSuccess() {
+					Gdx.app.postRunnable(new Runnable() {
+						@Override
+						public void run() {
+							highscoreWEB = highscore;
+							myToast.makeText("HighScore WEB saved!", font_berlin, 5f);
+						}
+					});
+				}
+
+				@Override
+				public void onError(final String error) {
+					Gdx.app.postRunnable(new Runnable() {
+						@Override
+						public void run() {
+							myToast.makeText("WebScore error: " + error, font_berlin, 5f);
+						}
+					});
+				}
+			});
 		}
 
 		@Override
 		public void canceled() {
 			myToast.makeText("Canceled? What a Strange Farmer...", font_berlin,
-					10f);
+					5f);
 		}
 
 	};
@@ -175,9 +192,15 @@ public class PlayScreen extends AbstractScreen {
 					TypeOfObject.oiseau.getAllImages()[i]));
 		}
 		Animation animationOiseau = new Animation(0.15f, arrayOiseau,
-				Animation.LOOP);
+				Animation.PlayMode.LOOP);
 		oiseau = new AnimatedActor(animationOiseau);
-
+		oiseau.setTouchable(Touchable.enabled);
+		oiseau.addListener(new ClickListener() {
+			@Override
+			public void clicked(InputEvent event, float x, float y) {
+				handleBirdClick();
+			}
+		});
 		stage.addActor(oiseau);
 		// fusée animée
 		Array<AtlasRegion> arrayFusee = new Array<AtlasRegion>();
@@ -186,7 +209,7 @@ public class PlayScreen extends AbstractScreen {
 					TypeOfObject.fusee.getAllImages()[i]));
 		}
 		Animation animationFusee = new Animation(0.05f, arrayFusee,
-				Animation.LOOP);
+				Animation.PlayMode.LOOP);
 		fusee = new AnimatedActor(animationFusee);
 		fusee.setPosition(-1000, -1000);
 		stage.addActor(fusee);
@@ -245,10 +268,18 @@ public class PlayScreen extends AbstractScreen {
 		stage.addActor(textStart);
 
 		// HUD=Score et Highscore
-		textScore = new TextActor(font_hennypenny, "");
+		textScore = new TextActor(font_hennypenny, "Score=0\nLevel=1");
 		stage.addActor(textScore);
-		textHighScore = new TextActor(font_hennypenny2, "");
+		textHighScore = new TextActor(font_hennypenny2, "Local HighScore=0\nWeb HighScore=...");
 		stage.addActor(textHighScore);
+
+		// Label Invincible clignotant en bas a gauche
+		textInvincible = new TextActor(font_berlin, "invincible");
+		textInvincible.setColor(1f, 0.85f, 0.15f, 1f);
+		textInvincible.setVisible(false);
+		textInvincible.addAction(forever(sequence(fadeOut(0.35f), fadeIn(0.35f))));
+		stage.addActor(textInvincible);
+
 		Gdx.input.setInputProcessor(stage);
 		stage.addListener(new ClickListener() {
 
@@ -275,6 +306,21 @@ public class PlayScreen extends AbstractScreen {
 					int pointer, int button) {
 				Gdx.app.log("Fumper/PlayScreen/InputListenerStage",
 						"touch started at (" + x + ", " + y + ")");
+
+				// Detection supplementaire du toucher sur l'oiseau
+				if (oiseau != null) {
+					float so = Gdx.graphics.getWidth() / 200.0f;
+					float birdW = oiseau.getWidth() * so;
+					float birdH = oiseau.getHeight() * so;
+					float birdX = oiseau.getX();
+					float birdY = oiseau.getY();
+					float margin = Math.max(30f, birdW * 0.35f);
+					if (x >= birdX - margin && x <= birdX + birdW + margin
+							&& y >= birdY - margin && y <= birdY + birdH + margin) {
+						handleBirdClick();
+					}
+				}
+
 				getBascule().push(level+(bonus_flag?100:0)+(superman?100:0));
 				Gdx.app.log("PlayScreen/touchDown=>", "bonus="+bonus_flag+", level="+level+", force="+(level+(bonus_flag?100:0)));
 				FumperSound.bascule.play(0.5f);
@@ -298,6 +344,44 @@ public class PlayScreen extends AbstractScreen {
 		});
 	}
 
+	private void handleBirdClick() {
+		long now = TimeUtils.millis();
+		if (now - lastBirdClickTimestamp < 180) {
+			return; // Evite le double comptage
+		}
+		lastBirdClickTimestamp = now;
+
+		if (now - lastBirdClickTime > 2500) {
+			birdClickCount = 1;
+		} else {
+			birdClickCount++;
+		}
+		lastBirdClickTime = now;
+
+		Gdx.app.log("Fumper/PlayScreen", "Bird clicked! Count: " + birdClickCount);
+		FumperSound.bird.play(0.5f);
+
+		if (birdClickCount >= 3) {
+			birdClickCount = 0;
+			invincible = !invincible;
+			if (invincible) {
+				invincibleUsedInSession = true;
+				if (textInvincible != null) {
+					textInvincible.setVisible(true);
+					textInvincible.toFront();
+				}
+				myToast.makeText("Mode Invincible ACTIVE", font_berlin, 2f);
+				Gdx.app.log("Fumper/PlayScreen", "INVINCIBLE MODE ACTIVATED");
+			} else {
+				if (textInvincible != null) {
+					textInvincible.setVisible(false);
+				}
+				myToast.makeText("Mode Invincible DESACTIVE", font_berlin, 2f);
+				Gdx.app.log("Fumper/PlayScreen", "INVINCIBLE MODE DEACTIVATED");
+			}
+		}
+	}
+
 	/**
 	 * Permet de supprimer les fruits hors champ et controler ceux qui sont dans
 	 * le panier
@@ -307,12 +391,14 @@ public class PlayScreen extends AbstractScreen {
 	 */
 	private int UpdateFruits(Array<Fruit> fruits, boolean immediat) {
 
-		int index = 0;
-		for (Fruit i : fruits) {
+		for (int index = fruits.size - 1; index >= 0; index--) {
+			Fruit i = fruits.get(index);
 			// cas spécial du fruit qui va dans les airs => le Bonus time permet de lancer très fort...
 			if (i.getY() > Gdx.graphics.getWidth()*3f
 					&& fusee.getActions().size == 0) {
-				score+=5;
+				if (!invincibleUsedInSession) {
+					score+=5;
+				}
 				textScore.addAction(sequence(scaleBy(0.5f,0.5f, 0.5f), scaleBy(-0.5f,-0.5f, 0.5f)));
 				// On positionne en dehors de l'écran la fusee
 				fusee.setZIndex(oiseau.getZIndex()-1);
@@ -342,7 +428,9 @@ public class PlayScreen extends AbstractScreen {
 				(x<(xo+oiseau.getWidth()*so/2f))&&
 				splash.getActions().size == 0){
 				resizeOiseau();
-				score+=2;
+				if (!invincibleUsedInSession) {
+					score+=2;
+				}
 				splash.setPosition(xo-splash.getOriginX(), yo-splash.getOriginY());
 				splash.toFront();
 				splash.addAction((sequence(
@@ -360,17 +448,18 @@ public class PlayScreen extends AbstractScreen {
 				//FumperSound.bird.play();
 			}
 			// Quels fruits détruire?
-			if (i.getBody().getPosition().x * AbstractScreen.BOX_TO_WORLD < -100
-					|| i.getBody().getPosition().x
-							* AbstractScreen.BOX_TO_WORLD > Gdx.graphics
-							.getWidth() + 100
-					|| i.getBody().getPosition().y
-							* AbstractScreen.BOX_TO_WORLD < -100
-					|| i.getColor().a == 0.5f
-					|| (i.getBody().getUserData().equals("in") && immediat)
-					&& !worldbox.isLocked()) {
-				if (i.getBody().getUserData().equals("in")) {
-					score++;
+			boolean outOfBounds = i.getBody().getPosition().x * AbstractScreen.BOX_TO_WORLD < -100
+					|| i.getBody().getPosition().x * AbstractScreen.BOX_TO_WORLD > Gdx.graphics.getWidth() + 100
+					|| i.getBody().getPosition().y * AbstractScreen.BOX_TO_WORLD < -100
+					|| i.getColor().a == 0.5f;
+			boolean inBasket = i.getBody().getUserData() != null && i.getBody().getUserData().equals("in");
+
+			if ((outOfBounds || (inBasket && immediat)) && !worldbox.isLocked()) {
+				if (inBasket) {
+					fruitsInBasketThisLevel++;
+					if (!invincibleUsedInSession) {
+						score += Math.max(1, level);
+					}
 					textScore.addAction(sequence(scaleBy(0.5f,0.5f, 0.5f), scaleBy(-0.5f,-0.5f, 0.5f)));
 					FumperSound.fruit_bascule.play();
 				}
@@ -384,24 +473,58 @@ public class PlayScreen extends AbstractScreen {
 				i.setRotation(i.getBody().getAngle()
 						* MathUtils.radiansToDegrees);
 			}
-
-			index++;
 		}
 		return fruits.size;
 	}
 
+	private float getHudTopPadding() {
+		float height = Gdx.graphics.getHeight();
+		float width = Gdx.graphics.getWidth();
+		float ratio = height / Math.max(1f, width);
+		if (ratio > 1.9f) {
+			// Ecrans allongés modernes (19.5:9, 20:9) : monte légèrement le HUD sous la zone de statut
+			return Math.max(38f, height * 0.042f);
+		} else {
+			// Ecrans classiques (16:9, tablettes, desktop)
+			return Math.max(24f, height * 0.032f);
+		}
+	}
+
+	private float getHudGap() {
+		return Math.max(8f, Gdx.graphics.getHeight() * 0.009f);
+	}
+
+	private float getHudX() {
+		return Math.max(20f, Gdx.graphics.getWidth() * 0.035f);
+	}
+
 	private void UpdateHUD() {
-		String txt= new String("Score=" + score + "\nLevel=" + level);
+		String txt = new String("Score=" + score + "\nLevel=" + level);
 		textScore.setText(txt);
 		StringBuffer chaine = new StringBuffer("Local HighScore=" + highscore);
 		if (highscoreWEB < 0 || highscoreWEB_name.startsWith("!"))
 			textHighScore.setText(chaine
-					+ "\n Web HighScore=<Internet not available>");
+					+ "\nWeb HighScore=<Internet not available>");
 		else
 			textHighScore.setText("Local HighScore=" + highscore
 					+ "\nWeb HighScore=" + highscoreWEB + "\t by "
 					+ highscoreWEB_name);
 
+		float hudX = getHudX();
+		float topPadding = getHudTopPadding();
+		float gap = getHudGap();
+
+		textScore.setPosition(hudX, Gdx.graphics.getHeight() - textScore.getHeight() - topPadding);
+		textHighScore.setPosition(hudX, textScore.getY() - textHighScore.getHeight() - gap);
+
+		if (textInvincible != null) {
+			if (invincible) {
+				textInvincible.setVisible(true);
+				textInvincible.toFront();
+			} else {
+				textInvincible.setVisible(false);
+			}
+		}
 	}
 
 	/**
@@ -419,6 +542,14 @@ public class PlayScreen extends AbstractScreen {
 
 		case DEBUT:
 			if (start_ok) {
+				promptShown = false;
+				invincible = false;
+				invincibleUsedInSession = false;
+				birdClickCount = 0;
+				fruitsInBasketThisLevel = 0;
+				if (textInvincible != null) {
+					textInvincible.setVisible(false);
+				}
 				textGameOver.setVisible(false);
 				textStart.setVisible(false);
 				score = 0;
@@ -446,29 +577,45 @@ public class PlayScreen extends AbstractScreen {
 			else {
 				fruits.add(new Fruit(this, tofTable[(level - 1)
 						% TypeOfObject.getNbFruits()], 0.1f*(1+(level-1)/100f)));
-				fruits.peek().addAction(
+				Fruit currentFruit = fruits.peek();
+				currentFruit.addAction(
 						sequence(delay(10.0f), alpha(0.5f, 5.0f),
 								run(new Runnable() {
 									public void run() {
 										System.out.println("Action complete!");
 									}
 								})));
-				fruits.peek().getBody().setUserData(new String("out"));
-				// laché de pomme: toujours au même endroit par rapport à la
-				// bascule
-				// et y toujours à la même hauteur par rapport au panier
-				int x = (int) (getBascule().getImgBuche().getX()-Gdx.graphics.getWidth()/6f);
-				int y = (int) (panier.getImgPanier().getY() * 1.5);
+				currentFruit.getBody().setUserData(new String("out"));
+				// laché de fruit depuis l'arbre : positionné pour atterrir parfaitement sur la partie gauche de la bascule
+				float heightOffset = MathUtils.random(-Gdx.graphics.getHeight() * 0.02f, Gdx.graphics.getHeight() * 0.02f);
+				// Centre de réception de la bascule : le pivot est à ~0.28 W, l'extrémité gauche à ~0.05 W.
+				// On place le fruit à ~0.15 W (centre de la zone de réception) pour qu'il arrive en plein sur la planche.
+				float targetDropX = getBascule().getImgBuche().getX() - Gdx.graphics.getWidth() / 10f;
+				int x = (int) (targetDropX + MathUtils.random(-Gdx.graphics.getWidth() * 0.008f, Gdx.graphics.getWidth() * 0.008f));
+				// Hauteur sous le feuillage de l'arbre
+				int y = (int) (Gdx.graphics.getHeight() / 2.1f + heightOffset);
 				if (debug)
 					x = (int) (panier.getImgPanier().getX() + 5);
-				int angle = 0;// new Random().nextInt(360);
-				fruits.peek().ResetPosition(x, y, angle);
-				stage.addActor(fruits.peek());
+				int angle = MathUtils.random(-10, 10);
+				currentFruit.ResetPosition(x, y, angle);
+
+				// Diversité naturelle et contrôlée de vitesse de chute :
+				float gravityScale = MathUtils.random(0.9f, 1.15f);
+				float linearDamping = MathUtils.random(0.02f, 0.15f);
+				float initialVy = MathUtils.random(-0.5f, 0.0f);
+				float initialAngularVel = MathUtils.random(-0.3f, 0.3f);
+				currentFruit.getBody().setGravityScale(gravityScale);
+				currentFruit.getBody().setLinearDamping(linearDamping);
+				currentFruit.getBody().setLinearVelocity(0f, initialVy);
+				currentFruit.getBody().setAngularVelocity(initialAngularVel);
+
+				stage.addActor(currentFruit);
 				imageFruits.removeIndex(imageFruits.size - 1).remove();
 				panier.getImgPanier_front().setZIndex(50);
 				Gdx.app.log("Fumper/playScreen/Render/NEW_FRUIT/", "nb fruits="
-						+ fruits.size + "/zindex=" + fruits.peek().getZIndex()
-						+ "/zindex panier=" + panier.getImgPanier().getZIndex());
+						+ fruits.size + "/zindex=" + currentFruit.getZIndex()
+						+ "/zindex panier=" + panier.getImgPanier().getZIndex()
+						+ "/gravityScale=" + gravityScale);
 				examGamePart = GamePart.EN_COURS;
 			}
 
@@ -478,18 +625,21 @@ public class PlayScreen extends AbstractScreen {
 			if (UpdateFruits(fruits, true) == 0) // vérifie qu'il n'y a plus de
 													// fruit en mouvement ou sur
 													// l'écran
-				if (score > lastlevel_score || bonus_flag) {
+				if (invincible || bonus_flag || fruitsInBasketThisLevel > 0 || score > lastlevel_score) {
 					examGamePart = GamePart.NEW_LEVEL;
 					lastlevel_score = score;
+					fruitsInBasketThisLevel = 0;
 				} else {
 					examGamePart = GamePart.GAMEOVER;
 					lastlevel_score = 0;
+					fruitsInBasketThisLevel = 0;
 				}
 			else
 				panier.check_fruits_in();
 			break;
 
 		case NEW_LEVEL:
+			fruitsInBasketThisLevel = 0;
 			if (bonus_flag) {
 				examGamePart = GamePart.BONUS_TIME;
 				break;
@@ -552,6 +702,18 @@ public class PlayScreen extends AbstractScreen {
 				examGamePart = GamePart.NEW_LEVEL;
 			break;
 		case GAMEOVER:
+			if (!invincibleUsedInSession) {
+				if (score > highscore) {
+					highscore = score;
+					game.FumperPrefs.setHighScore(score, highscore_name);
+				}
+				if (score > highscoreWEB && highscoreWEB > 0 && !promptShown) {
+					promptShown = true;
+					Gdx.input.getTextInput(HighScoreWebBox,
+							"Nice ! You kill WebScore ! \nWhat's Your Name Farmer?",
+							"", "");
+				}
+			}
 			textGameOver.setVisible(true);
 			textStart.setText("Play Again");
 			resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -561,20 +723,18 @@ public class PlayScreen extends AbstractScreen {
 			break;
 		case QUIT:
 			start_ok = false;
-			if (game.FumperPrefs.getHighScore() < score) {
-				// Gdx.input.getTextInput(listener,
-				// "Nice ! Farmer !\nWhat's Your Name?", "");
-				game.FumperPrefs.setHighScore(score, "local");
-			}
-			new Thread(new Runnable() {
-				@Override
-				public void run() {
-					TestHighScoreWeb(
-							HighScoreWebBox,
-							"Nice ! You kill WebScore ! \nWhat's Your Name Farmer?",
-							"");
+			if (!invincibleUsedInSession) {
+				if (game.FumperPrefs.getHighScore() < score) {
+					game.FumperPrefs.setHighScore(score, "local");
+					highscore = score;
 				}
-			}).start();
+				if (highscore > highscoreWEB && highscoreWEB > 0 && !promptShown) {
+					promptShown = true;
+					Gdx.input.getTextInput(HighScoreWebBox,
+							"Nice ! You kill WebScore ! \nWhat's Your Name Farmer?",
+							"", "");
+				}
+			}
 			dispose();
 			game.setScreen(new SplashScreen(game));
 			break;
@@ -584,31 +744,32 @@ public class PlayScreen extends AbstractScreen {
 	}
 
 	/**
-	 * Connection FTP pour récupérer et vérifier que le WebScore a été ou non
-	 * battu
-	 * 
-	 * @param ListenerBoiteDialog
-	 * @param LibBoiteDialog
-	 * @param ValeurDefaut
+	 * Récupération et vérification asynchrone du high score Web
 	 */
-	private void TestHighScoreWeb(TextInputListener ListenerBoiteDialog,
-			String LibBoiteDialog, String ValeurDefaut) {
+	private void refreshWebScore() {
+		OnlineScoreService.fetchHighScore(new OnlineScoreService.ScoreCallback() {
+			@Override
+			public void onSuccess(final String farmer, final int score) {
+				Gdx.app.postRunnable(new Runnable() {
+					@Override
+					public void run() {
+						highscoreWEB = score;
+						highscoreWEB_name = farmer;
+						if (highscore > highscoreWEB && highscoreWEB > 0 && !start_ok && !promptShown) {
+							promptShown = true;
+							Gdx.input.getTextInput(HighScoreWebBox,
+									"Your Local HighScore Kills WebScore's ! What's Your Name Farmer?",
+									"", "");
+						}
+					}
+				});
+			}
 
-		try {
-			highscoreWEB = Integer.parseInt(new FTPConnect().readfile(
-					"fumper.txt", "hs"));
-		} catch (NumberFormatException e) {
-			highscoreWEB = -1;
-		}
-		highscoreWEB_name = new FTPConnect().readfile("fumper.txt", "farmer");
-		if (highscoreWEB_name.startsWith("!")) {
-			//myToast.makeText(highscoreWEB_name, font_berlin, 10f);
-		} else {
-			if (highscore > highscoreWEB && highscoreWEB > 0 && !start_ok)
-				Gdx.input.getTextInput(ListenerBoiteDialog, LibBoiteDialog,
-						ValeurDefaut);
-
-		}
+			@Override
+			public void onError(final String error) {
+				Gdx.app.log("Fumper/PlayScreen", "Online score error: " + error);
+			}
+		});
 	}
 
 	void resizeOiseau(){
@@ -681,22 +842,32 @@ public class PlayScreen extends AbstractScreen {
 					height / 5);
 			textGameOver.toFront();
 		}
-		if (textHighScore != null) {
-			float sizefont = (float) width / 800f;
-			textHighScore.setScale(sizefont);
-			textHighScore.setPosition(10, Gdx.graphics.getHeight() - 100);
-
-		}
 		if (textScore != null) {
-			float sizefont = (float) width / 400f;
+			float sizefont = (float) width / 450f;
 			textScore.setScale(sizefont);
-			textScore.setPosition(10,
-					textHighScore.getY() - textHighScore.getHeight() * 4);
+			float hudX = getHudX();
+			float topPadding = getHudTopPadding();
+			textScore.setPosition(hudX, height - textScore.getHeight() - topPadding);
+		}
+		if (textHighScore != null) {
+			float sizefont = (float) width / 750f;
+			textHighScore.setScale(sizefont);
+			float hudX = getHudX();
+			float gap = getHudGap();
+			float scoreY = (textScore != null) ? (textScore.getY() - textHighScore.getHeight() - gap) : (height - 130);
+			textHighScore.setPosition(hudX, scoreY);
 		}
 		if (textCopyright != null) {
 			textCopyright.toFront();
 			textCopyright.setScale(Gdx.graphics.getWidth()/1500f);
 			textCopyright.setPosition(Gdx.graphics.getWidth()-textCopyright.getStrWidth(),textCopyright.getStrHeight()/2f);
+		}
+		if (textInvincible != null) {
+			textInvincible.setScale((float) width / 1100f);
+			float invX = getHudX();
+			float invY = Math.max(12f, height * 0.015f);
+			textInvincible.setPosition(invX, invY);
+			textInvincible.toFront();
 		}
 	}
 
@@ -730,6 +901,10 @@ public class PlayScreen extends AbstractScreen {
 
 	@Override
 	public void dispose() {
+		if (scoreTimer != null) {
+			scoreTimer.clear();
+			scoreTimer.stop();
+		}
 		super.dispose();
 	}
 

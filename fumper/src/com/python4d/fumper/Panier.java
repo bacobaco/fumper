@@ -71,7 +71,6 @@ public class Panier {
 				fdPanier,
 				imgPanier.getWidth() * imgPanier.getScaleX()
 						* AbstractScreen.WORLD_TO_BOX);
-		bodyPanier.createFixture(fdPanier);
 		// add radar sensor to ship
 		CircleShape circleShape = new CircleShape();
 		circleShape.setPosition(new Vector2(imgPanier.getWidth()

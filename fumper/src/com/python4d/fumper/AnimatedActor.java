@@ -2,6 +2,7 @@ package com.python4d.fumper;
 
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
@@ -14,11 +15,12 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
  *         >stackoverflow<a/>}
  */
 public class AnimatedActor extends Image {
-	public final Animation anim;
+	public final Animation<TextureRegion> anim;
 	private float stateTime = 0;
 	
+	@SuppressWarnings("unchecked")
 	public AnimatedActor(Animation anim) {
-		super(anim.getKeyFrame(0));
+		super((TextureRegion) anim.getKeyFrame(0));
 	    this.anim = anim;
 	}
 	

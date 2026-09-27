@@ -84,7 +84,6 @@ public class Bascule{
 				fdBuche,
 				imgBuche.getWidth() * imgBuche.getScaleX()
 						* AbstractScreen.WORLD_TO_BOX);
-		bodyBuche.createFixture(fdBuche);
 		bodyBuche.setUserData(imgBuche);
 		
 		
@@ -95,15 +94,18 @@ public class Bascule{
 	
 		screen.stage.addActor(imgPlanche);
 
-		//PosxW = (imgPlanche.getX()) * AbstractScreen.WORLD_TO_BOX;
-		//PosyW = (imgPlanche.getY()) * AbstractScreen.WORLD_TO_BOX;
-		// Create our body definition
+		float instable = 1.2f;
+		float anchorAx = PosxW + imgBuche.getWidth() * imgBuche.getScaleX() * AbstractScreen.WORLD_TO_BOX / 2f;
+		float anchorAy = PosyW + imgBuche.getHeight() * imgBuche.getScaleY() * AbstractScreen.WORLD_TO_BOX;
+		float anchorBx = imgPlanche.getWidth() * imgPlanche.getScaleX() * AbstractScreen.WORLD_TO_BOX / 2f * instable;
+		float anchorBy = imgPlanche.getHeight() * imgPlanche.getScaleY() * AbstractScreen.WORLD_TO_BOX / 2f;
+
+		// Create bodyPlanche directly at its resting joint position in world coordinates
 		BodyDef bd = new BodyDef();
-		// Set its world position
-		//bd.position.set(new Vector2(PosxW, PosyW));
+		bd.position.set(anchorAx - anchorBx, anchorAy - anchorBy);
 		bd.type = BodyType.DynamicBody;
-		// Create a body from the definition and add it to the world
-		 bodyPlanche = screen.getWorldbox().createBody(bd);
+		bodyPlanche = screen.getWorldbox().createBody(bd);
+
 		FixtureDef fd = new FixtureDef();
 		fd.friction = 0.2f;
 		fd.restitution = 0.2f;
@@ -114,7 +116,7 @@ public class Bascule{
 				fd,
 				imgPlanche.getWidth() * imgPlanche.getScaleX()
 						* AbstractScreen.WORLD_TO_BOX);
-		bodyPlanche.createFixture(fd);
+
 		RevoluteJointDef jd = new RevoluteJointDef();
 		jd.enableLimit = true;
 		jd.lowerAngle = -30 * MathUtils.degreesToRadians;
@@ -122,13 +124,13 @@ public class Bascule{
 		jd.bodyA = bodyBuche;
 		jd.bodyB = bodyPlanche;
 		jd.collideConnected = false;
-		float instable = 1.2f;
-		jd.localAnchorA.add(imgBuche.getWidth()*imgBuche.getScaleX()*AbstractScreen.WORLD_TO_BOX/2,
-				imgBuche.getHeight()*imgBuche.getScaleY()*AbstractScreen.WORLD_TO_BOX);
-		jd.localAnchorB.add(imgPlanche.getWidth()*imgPlanche.getScaleX()*AbstractScreen.WORLD_TO_BOX/2*instable,
-				imgPlanche.getHeight()*imgPlanche.getScaleY()*AbstractScreen.WORLD_TO_BOX/2);
+		jd.localAnchorA.set(anchorAx - PosxW, anchorAy - PosyW);
+		jd.localAnchorB.set(anchorBx, anchorBy);
 		screen.getWorldbox().createJoint(jd);
 		bodyPlanche.setUserData(imgPlanche);
+
+		imgPlanche.setPosition(bodyPlanche.getPosition().x * AbstractScreen.BOX_TO_WORLD,
+				bodyPlanche.getPosition().y * AbstractScreen.BOX_TO_WORLD);
 
 		return bodyPlanche;
 	}

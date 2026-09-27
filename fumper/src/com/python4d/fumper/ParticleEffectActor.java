@@ -1,6 +1,7 @@
 package com.python4d.fumper;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.ParticleEffect;
@@ -10,13 +11,13 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 public class ParticleEffectActor extends Actor {
 	ParticleEffect effect;
 	Actor actor;
-	Hashtable<String, Float> scaling = new Hashtable<String, Float>();
+	Map<String, Float> scaling = new HashMap<String, Float>();
 
 	public ParticleEffectActor(ParticleEffect effect,Actor actor) {
 		this.effect = effect;
 		this.actor = actor;
-	    scaling.put("ScaleHighMax", effect.getEmitters().get(0).getScale().getHighMax()); 
-	    scaling.put("ScaleLowMax",  effect.getEmitters().get(0).getScale().getLowMax());
+	    scaling.put("ScaleHighMax", effect.getEmitters().get(0).getXScale().getHighMax()); 
+	    scaling.put("ScaleLowMax",  effect.getEmitters().get(0).getXScale().getLowMax());
 	    scaling.put("VelocityHighMax",effect.getEmitters().get(0).getVelocity().getHighMax());
 	    scaling.put("VelocityLowMax", effect.getEmitters().get(0).getVelocity().getLowMax());
 	}
@@ -44,19 +45,22 @@ public class ParticleEffectActor extends Actor {
 	public void setScale(float scale) {
 		super.setScale(scale);
 		for (ParticleEmitter emitter : effect.getEmitters()) { 
-			emitter.getScale().setHigh(scaling.get("ScaleHighMax") * scale);
-			emitter.getScale().setLow(scaling.get("ScaleLowMax") * scale);
+			emitter.getXScale().setHigh(scaling.get("ScaleHighMax") * scale);
+			emitter.getXScale().setLow(scaling.get("ScaleLowMax") * scale);
+			emitter.getYScale().setHigh(scaling.get("ScaleHighMax") * scale);
+			emitter.getYScale().setLow(scaling.get("ScaleLowMax") * scale);
 			emitter.getVelocity().setHigh(scaling.get("VelocityHighMax") * scale);
 			emitter.getVelocity().setLow(scaling.get("VelocityLowMax") * scale);
-			
          }
-
 	}
 
 	public void start(){
 		effect.start();
 	}
 	
+	public void reset(){
+		effect.reset();
+	}
 
 	public ParticleEffect getEffect() {
 		return effect;
