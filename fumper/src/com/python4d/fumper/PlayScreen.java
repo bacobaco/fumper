@@ -240,28 +240,9 @@ public class PlayScreen extends AbstractScreen {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
 				Gdx.app.log(
-						"Fumper/PlayScreen/textStart/clicked(x,y)" + "(" + x
-								+ "," + y + ")" + "(getX,getY)=",
-						"(" + textStart.getX() + "," + textStart.getY()
-								+ ") et (textStart.width,height)=("
-								+ textStart.getWidth() + ","
-								+ textStart.getHeight() + ")");
+						"Fumper/PlayScreen/textStart/clicked(x,y)",
+						"(" + x + "," + y + ")");
 				start_ok = true;
-			}
-		});
-		textStart.addListener(new InputListener() {
-			@Override
-			public boolean touchDown(InputEvent event, float x, float y,
-					int pointer, int button) {
-				Gdx.app.log("Example", "touch started at (" + x + ", " + y
-						+ ")");
-				return true;
-			}
-
-			@Override
-			public void touchUp(InputEvent event, float x, float y,
-					int pointer, int button) {
-				Gdx.app.log("Example", "touch done at (" + x + ", " + y + ")");
 			}
 		});
 
@@ -306,6 +287,11 @@ public class PlayScreen extends AbstractScreen {
 					int pointer, int button) {
 				Gdx.app.log("Fumper/PlayScreen/InputListenerStage",
 						"touch started at (" + x + ", " + y + ")");
+
+				if (examGamePart == GamePart.DEBUT) {
+					start_ok = true;
+					return true;
+				}
 
 				// Detection supplementaire du toucher sur l'oiseau
 				if (oiseau != null) {

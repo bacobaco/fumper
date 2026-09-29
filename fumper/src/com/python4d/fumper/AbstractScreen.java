@@ -17,6 +17,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 public abstract class AbstractScreen implements Screen {
 
 	protected boolean debug=false;
+	public static boolean showBox2DDebug=false;
 	
 	// the fixed viewport dimensions (ratio: 1.6)
 	public static int GAME_VIEWPORT_WIDTH = 320,
@@ -241,7 +242,7 @@ public abstract class AbstractScreen implements Screen {
 			worldbox = new World(new Vector2(0, -9.8f), true);
 			World.setVelocityThreshold(2.0f);
 
-			debugRenderer = new Box2DDebugRenderer(debug, debug, debug, debug,debug, debug);
+			debugRenderer = new Box2DDebugRenderer(true, true, true, true, true, true);
 		}
 		return worldbox;
 	}
@@ -270,7 +271,7 @@ public abstract class AbstractScreen implements Screen {
 		if (worldbox != null) {
 			worldbox.step(1.0f / 60.0f, 8, 3);
 			MatZoom=camera.combined.cpy();
-			if (debug==true)
+			if (debug || showBox2DDebug)
 				debugRenderer.render(worldbox, MatZoom.scl(BOX_TO_WORLD));
 		}
 	}

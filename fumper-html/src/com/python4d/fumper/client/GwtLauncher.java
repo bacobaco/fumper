@@ -14,6 +14,7 @@ public class GwtLauncher extends GwtApplication {
 
 	@Override
 	public ApplicationListener createApplicationListener () {
+		setLogLevel(LOG_DEBUG);
 		return new Fumper();
 	}
 }

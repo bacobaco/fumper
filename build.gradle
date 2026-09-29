@@ -57,6 +57,16 @@ project(':fumper-desktop') {
             '--add-opens', 'java.desktop/sun.awt=ALL-UNNAMED'
         ]
     }
+
+    tasks.register('runSimTest', JavaExec) {
+        mainClass = 'com.python4d.fumper.PhysicsSimTest'
+        classpath = sourceSets.main.runtimeClasspath
+        workingDir = rootProject.file('.')
+        jvmArgs += [
+            '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+            '--add-opens', 'java.desktop/sun.awt=ALL-UNNAMED'
+        ]
+    }
 }
 
 project(':fumper-android') {

@@ -34,6 +34,28 @@ public class BodyEditorLoader {
         private final PolygonShape polygonShape = new PolygonShape();
         private final CircleShape circleShape = new CircleShape();
         private final Vector2 vec = new Vector2();
+        private final Vector2 checkV0 = new Vector2();
+        private final Vector2 checkV1 = new Vector2();
+        private final Vector2 checkV2 = new Vector2();
+        private final Vector2 checkV3 = new Vector2();
+        private final Array<Vector2> validVertsList = new Array<Vector2>();
+
+        private boolean isFallbackBox(PolygonShape shape) {
+                if (shape.getVertexCount() == 4) {
+                        shape.getVertex(0, checkV0);
+                        shape.getVertex(1, checkV1);
+                        shape.getVertex(2, checkV2);
+                        shape.getVertex(3, checkV3);
+                        // JBox2D fallback setAsBox(1.0f, 1.0f) creates a box with corners (-1,-1), (1,-1), (1,1), (-1,1)
+                        if (Math.abs(checkV0.x - (-1.0f)) < 0.01f && Math.abs(checkV0.y - (-1.0f)) < 0.01f &&
+                            Math.abs(checkV1.x - 1.0f) < 0.01f && Math.abs(checkV1.y - (-1.0f)) < 0.01f &&
+                            Math.abs(checkV2.x - 1.0f) < 0.01f && Math.abs(checkV2.y - 1.0f) < 0.01f &&
+                            Math.abs(checkV3.x - (-1.0f)) < 0.01f && Math.abs(checkV3.y - 1.0f) < 0.01f) {
+                                return true;
+                        }
+                }
+                return false;
+        }
 
         // -------------------------------------------------------------------------
         // Ctors
@@ -85,19 +107,47 @@ public class BodyEditorLoader {
 
                 for (int i=0, n=rbModel.polygons.size; i<n; i++) {
                         PolygonModel polygon = rbModel.polygons.get(i);
-                        Vector2[] vertices = polygon.buffer;
 
-                        for (int ii=0, nn=vertices.length; ii<nn; ii++) {
-                                vertices[ii] = newVec().set(polygon.vertices.get(ii)).scl(scale);
-                                vertices[ii].sub(origin);
+                        validVertsList.clear();
+                        for (int ii=0, nn=polygon.vertices.size; ii<nn; ii++) {
+                                Vector2 v = newVec().set(polygon.vertices.get(ii)).scl(scale).sub(origin);
+                                boolean unique = true;
+                                for (int jj=0; jj<validVertsList.size; jj++) {
+                                        if (v.dst2(validVertsList.get(jj)) < 0.0025f) { // 0.5 * Settings.linearSlop
+                                                unique = false;
+                                                break;
+                                        }
+                                }
+                                if (unique) {
+                                        validVertsList.add(v);
+                                } else {
+                                        free(v);
+                                }
+                        }
+
+                        if (validVertsList.size < 3) {
+                                for (int ii=0; ii<validVertsList.size; ii++) {
+                                        free(validVertsList.get(ii));
+                                }
+                                validVertsList.clear();
+                                continue;
+                        }
+
+                        Vector2[] vertices = new Vector2[validVertsList.size];
+                        for (int ii=0; ii<validVertsList.size; ii++) {
+                                vertices[ii] = validVertsList.get(ii);
                         }
 
                         polygonShape.set(vertices);
-                        fd.shape = polygonShape;
-                        body.createFixture(fd);
 
-                        for (int ii=0, nn=vertices.length; ii<nn; ii++) {
-                                free(vertices[ii]);
+                        for (int ii=0; ii<validVertsList.size; ii++) {
+                                free(validVertsList.get(ii));
+                        }
+                        validVertsList.clear();
+
+                        if (!isFallbackBox(polygonShape)) {
+                                fd.shape = polygonShape;
+                                body.createFixture(fd);
                         }
                 }
 
@@ -146,18 +196,46 @@ public class BodyEditorLoader {
 
                 for (int i=0, n=rbModel.polygons.size; i<n; i++) {
                         PolygonModel polygon = rbModel.polygons.get(i);
-                        Vector2[] vertices = polygon.buffer;
 
-                        for (int ii=0, nn=vertices.length; ii<nn; ii++) {
-                                vertices[ii] = newVec().set(polygon.vertices.get(ii)).scl(scale);
-                                vertices[ii].sub(origin);
+                        validVertsList.clear();
+                        for (int ii=0, nn=polygon.vertices.size; ii<nn; ii++) {
+                                Vector2 v = newVec().set(polygon.vertices.get(ii)).scl(scale).sub(origin);
+                                boolean unique = true;
+                                for (int jj=0; jj<validVertsList.size; jj++) {
+                                        if (v.dst2(validVertsList.get(jj)) < 0.0025f) { // 0.5 * Settings.linearSlop
+                                                unique = false;
+                                                break;
+                                        }
+                                }
+                                if (unique) {
+                                        validVertsList.add(v);
+                                } else {
+                                        free(v);
+                                }
+                        }
+
+                        if (validVertsList.size < 3) {
+                                for (int ii=0; ii<validVertsList.size; ii++) {
+                                        free(validVertsList.get(ii));
+                                }
+                                validVertsList.clear();
+                                continue;
+                        }
+
+                        Vector2[] vertices = new Vector2[validVertsList.size];
+                        for (int ii=0; ii<validVertsList.size; ii++) {
+                                vertices[ii] = validVertsList.get(ii);
                         }
 
                         polygonShape.set(vertices);
-                        body.createFixture(polygonShape, 0.0f);
 
-                        for (int ii=0, nn=vertices.length; ii<nn; ii++) {
-                                free(vertices[ii]);
+                        for (int ii=0; ii<validVertsList.size; ii++) {
+                                free(validVertsList.get(ii));
+                        }
+                        validVertsList.clear();
+
+                        if (!isFallbackBox(polygonShape)) {
+                                body.createFixture(polygonShape, 0.0f);
                         }
                 }
 
