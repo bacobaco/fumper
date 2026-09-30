@@ -185,7 +185,10 @@ project(':fumper-html') {
                 into distDir
             }
 
-            // 2. Compiled GWT JavaScript module
+            // 2. Clean previous cache files and copy compiled GWT JavaScript module
+            delete fileTree("${distDir}/html") {
+                include "*.cache.js"
+            }
             copy {
                 from file("build/gwt/war/html")
                 into file("${distDir}/html")
