@@ -108,7 +108,7 @@ public class Bascule{
 
 		FixtureDef fd = new FixtureDef();
 		fd.friction = 0.2f;
-		fd.restitution = 0.2f;
+		fd.restitution = 0.30f;
 		fd.density = 5.0f;
 		screen.getBodyLoader().attachFixture(
 				bodyPlanche,
@@ -161,7 +161,7 @@ public class Bascule{
 	public void push(int level) {
 		if (TimeUtils.millis()-lasttime_push>100){
 			lasttime_push=TimeUtils.millis();
-			float forceY=(float) -Math.pow(bodyPlanche.getMass(), 1.90)*(1+level/100.0f);
+			float forceY = (float) -Math.pow(bodyPlanche.getMass(), 1.90) * (1.75f + (level - 1) * 0.03f);
 			bodyPlanche.setAwake(true);
 			bodyPlanche.applyAngularImpulse(forceY, true);
 			Gdx.app.log("Fumper/Bascule/push()", ": forceY=" + forceY + " mass=" + bodyPlanche.getMass() + " angle=" + (bodyPlanche.getAngle()*MathUtils.radiansToDegrees) + " angVel=" + bodyPlanche.getAngularVelocity());

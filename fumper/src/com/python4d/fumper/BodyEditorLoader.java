@@ -113,7 +113,7 @@ public class BodyEditorLoader {
                                 Vector2 v = newVec().set(polygon.vertices.get(ii)).scl(scale).sub(origin);
                                 boolean unique = true;
                                 for (int jj=0; jj<validVertsList.size; jj++) {
-                                        if (v.dst2(validVertsList.get(jj)) < 0.0025f) { // 0.5 * Settings.linearSlop
+                                        if (v.dst2(validVertsList.get(jj)) < 0.000025f) { // (Settings.linearSlop)^2
                                                 unique = false;
                                                 break;
                                         }
@@ -202,7 +202,7 @@ public class BodyEditorLoader {
                                 Vector2 v = newVec().set(polygon.vertices.get(ii)).scl(scale).sub(origin);
                                 boolean unique = true;
                                 for (int jj=0; jj<validVertsList.size; jj++) {
-                                        if (v.dst2(validVertsList.get(jj)) < 0.0025f) { // 0.5 * Settings.linearSlop
+                                        if (v.dst2(validVertsList.get(jj)) < 0.000025f) { // (Settings.linearSlop)^2
                                                 unique = false;
                                                 break;
                                         }

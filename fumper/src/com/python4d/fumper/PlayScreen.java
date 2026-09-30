@@ -83,15 +83,17 @@ public class PlayScreen extends AbstractScreen {
 		super(game);
 		highscore = game.FumperPrefs.getHighScore();
 		highscore_name = new String(game.FumperPrefs.getHighScoreName());
+		highscoreWEB = game.FumperPrefs.getWebHighScore();
+		highscoreWEB_name = new String(game.FumperPrefs.getWebHighScoreName());
 
-		// Timer pour rafraichir le high score web toutes les 30 secondes
+		// Rafraichir le high score web toutes les 5 minutes
 		scoreTimer = new Timer();
 		scoreTimer.scheduleTask(new Task() {
 			@Override
 			public void run() {
 				refreshWebScore();
 			}
-		}, 0, 30);
+		}, 300, 300);
 	}
 
 	/**
@@ -112,6 +114,7 @@ public class PlayScreen extends AbstractScreen {
 						@Override
 						public void run() {
 							highscoreWEB = highscore;
+							game.FumperPrefs.setWebHighScore(highscore, highscoreWEB_name);
 							myToast.makeText("HighScore WEB saved!", font_berlin, 5f);
 						}
 					});
@@ -251,8 +254,14 @@ public class PlayScreen extends AbstractScreen {
 		// HUD=Score et Highscore
 		textScore = new TextActor(font_hennypenny, "Score=0\nLevel=1");
 		stage.addActor(textScore);
-		textHighScore = new TextActor(font_hennypenny2, "Local HighScore=0\nWeb HighScore=...");
+		String initialWeb = (highscoreWEB >= 0 && !highscoreWEB_name.startsWith("!"))
+				? ("Local HighScore=" + highscore + "\nWeb HighScore=" + highscoreWEB + "\t by " + highscoreWEB_name)
+				: ("Local HighScore=" + highscore + "\nWeb HighScore=...");
+		textHighScore = new TextActor(font_hennypenny2, initialWeb);
 		stage.addActor(textHighScore);
+
+		// Lancement de la recuperation en arriere-plan
+		refreshWebScore();
 
 		// Label Invincible clignotant en bas a gauche
 		textInvincible = new TextActor(font_berlin, "invincible");
@@ -572,36 +581,35 @@ public class PlayScreen extends AbstractScreen {
 									}
 								})));
 				currentFruit.getBody().setUserData(new String("out"));
-				// laché de fruit depuis l'arbre : positionné pour atterrir parfaitement sur la partie gauche de la bascule
-				float heightOffset = MathUtils.random(-Gdx.graphics.getHeight() * 0.02f, Gdx.graphics.getHeight() * 0.02f);
-				// Centre de réception de la bascule : le pivot est à ~0.28 W, l'extrémité gauche à ~0.05 W.
-				// On place le fruit à ~0.15 W (centre de la zone de réception) pour qu'il arrive en plein sur la planche.
-				float targetDropX = getBascule().getImgBuche().getX() - Gdx.graphics.getWidth() / 10f;
-				int x = (int) (targetDropX + MathUtils.random(-Gdx.graphics.getWidth() * 0.008f, Gdx.graphics.getWidth() * 0.008f));
-				// Hauteur sous le feuillage de l'arbre
-				int y = (int) (Gdx.graphics.getHeight() / 2.1f + heightOffset);
+				// laché de fruit depuis l'arbre : positionné pour atterrir sur la partie gauche de la bascule
+				float heightOffset = MathUtils.random(-Gdx.graphics.getHeight() * 0.01f, Gdx.graphics.getHeight() * 0.01f);
+				// Centre de réception de la bascule (pile au milieu de la planche gauche)
+				int x = (int) (getBascule().getImgBuche().getX() - Gdx.graphics.getWidth() / 15f
+						+ MathUtils.random(-Gdx.graphics.getWidth() * 0.005f, Gdx.graphics.getWidth() * 0.005f));
+				// Position Y : hauteur de laché sous le feuillage
+				int y = (int) (panier.getImgPanier().getY() * 1.5f + heightOffset);
 				if (debug)
 					x = (int) (panier.getImgPanier().getX() + 5);
-				int angle = MathUtils.random(-10, 10);
+				int angle = MathUtils.random(-5, 5);
 				currentFruit.ResetPosition(x, y, angle);
 
-				// Diversité naturelle et contrôlée de vitesse de chute :
-				float gravityScale = MathUtils.random(0.9f, 1.15f);
-				float linearDamping = MathUtils.random(0.02f, 0.15f);
-				float initialVy = MathUtils.random(-0.5f, 0.0f);
-				float initialAngularVel = MathUtils.random(-0.3f, 0.3f);
-				currentFruit.getBody().setGravityScale(gravityScale);
-				currentFruit.getBody().setLinearDamping(linearDamping);
-				currentFruit.getBody().setLinearVelocity(0f, initialVy);
-				currentFruit.getBody().setAngularVelocity(initialAngularVel);
+				currentFruit.getBody().setGravityScale(1.0f);
+				currentFruit.getBody().setLinearDamping(0.05f);
+				currentFruit.getBody().setLinearVelocity(0f, 0f);
+				currentFruit.getBody().setAngularVelocity(0f);
 
 				stage.addActor(currentFruit);
 				imageFruits.removeIndex(imageFruits.size - 1).remove();
 				panier.getImgPanier_front().setZIndex(50);
 				Gdx.app.log("Fumper/playScreen/Render/NEW_FRUIT/", "nb fruits="
 						+ fruits.size + "/zindex=" + currentFruit.getZIndex()
-						+ "/zindex panier=" + panier.getImgPanier().getZIndex()
-						+ "/gravityScale=" + gravityScale);
+						+ "/zindex panier=" + panier.getImgPanier().getZIndex());
+				Gdx.app.log("Fumper/DROP_POSITION", "fruitX=" + x + " fruitY=" + y
+						+ " bucheX=" + getBascule().getImgBuche().getX()
+						+ " plancheX=" + getBascule().getImgPlanche().getX()
+						+ " plancheW=" + (getBascule().getImgPlanche().getWidth() * getBascule().getImgPlanche().getScaleX())
+						+ " plancheAngle=" + (getBascule().getBodyPlanche().getAngle() * MathUtils.radiansToDegrees)
+						+ " screenW=" + Gdx.graphics.getWidth());
 				examGamePart = GamePart.EN_COURS;
 			}
 
@@ -741,6 +749,7 @@ public class PlayScreen extends AbstractScreen {
 					public void run() {
 						highscoreWEB = score;
 						highscoreWEB_name = farmer;
+						game.FumperPrefs.setWebHighScore(score, farmer);
 						if (highscore > highscoreWEB && highscoreWEB > 0 && !start_ok && !promptShown) {
 							promptShown = true;
 							Gdx.input.getTextInput(HighScoreWebBox,

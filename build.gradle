@@ -40,7 +40,7 @@ project(':fumper-desktop') {
     sourceSets.main.java.srcDirs = ['src']
 
     application {
-        mainClass = 'com.python4d.fumper.Main'
+        mainClass = project.findProperty('mainClass') ?: 'com.python4d.fumper.Main'
     }
 
     dependencies {
@@ -52,16 +52,6 @@ project(':fumper-desktop') {
 
     tasks.named('run', JavaExec) {
         workingDir = rootProject.file('fumper-android/assets')
-        jvmArgs += [
-            '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
-            '--add-opens', 'java.desktop/sun.awt=ALL-UNNAMED'
-        ]
-    }
-
-    tasks.register('runSimTest', JavaExec) {
-        mainClass = 'com.python4d.fumper.PhysicsSimTest'
-        classpath = sourceSets.main.runtimeClasspath
-        workingDir = rootProject.file('.')
         jvmArgs += [
             '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
             '--add-opens', 'java.desktop/sun.awt=ALL-UNNAMED'

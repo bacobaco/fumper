@@ -62,8 +62,8 @@ public class Panier {
 		// Create a body from the definition and add it to the world
 		bodyPanier = screen.getWorldbox().createBody(bdPanier);
 		FixtureDef fdPanier = new FixtureDef();
-		fdPanier.friction = 0.50f;
-		fdPanier.restitution = 0.3f;
+		fdPanier.friction = 0.75f;
+		fdPanier.restitution = 0.15f;
 		fdPanier.density = 1.0f;
 		screen.getBodyLoader().attachFixture(
 				bodyPanier,
@@ -202,9 +202,9 @@ public class Panier {
 			}
 			else
 				//nouveau dedans et sans vie?
-				if (in && f.getBody().getAngularVelocity()<= 0.1f 
-						&& Math.abs(f.getBody().getLinearVelocity().y)<=0.1f
-						&& Math.abs(f.getBody().getLinearVelocity().x)<=0.1f){
+				if (in && Math.abs(f.getBody().getAngularVelocity()) <= 0.8f 
+						&& Math.abs(f.getBody().getLinearVelocity().y) <= 0.5f
+						&& Math.abs(f.getBody().getLinearVelocity().x) <= 0.5f){
 					f.getBody().setUserData(new String("in"));
 					nb++;
 				}

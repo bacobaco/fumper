@@ -49,6 +49,9 @@ public abstract class AbstractScreen implements Screen {
 	private TextureAtlas atlas;
 
 	protected World worldbox;
+	private float physicsAccumulator = 0.0f;
+	private static final float FIXED_TIMESTEP = 1.0f / 60.0f;
+	private static final float PHYSICS_SPEED = 1.25f;
 	private Box2DDebugRenderer debugRenderer;
 	private OrthographicCamera camera;
 	private Matrix4 MatZoom;
@@ -240,7 +243,7 @@ public abstract class AbstractScreen implements Screen {
 	public World getWorldbox() {
 		if (worldbox == null) {
 			worldbox = new World(new Vector2(0, -9.8f), true);
-			World.setVelocityThreshold(2.0f);
+			World.setVelocityThreshold(0.0f);
 
 			debugRenderer = new Box2DDebugRenderer(true, true, true, true, true, true);
 		}
@@ -269,7 +272,14 @@ public abstract class AbstractScreen implements Screen {
 			myToast.toaster();
 		//calcul du monde Box
 		if (worldbox != null) {
-			worldbox.step(1.0f / 60.0f, 8, 3);
+			float frameTime = Math.min(delta, 0.1f) * PHYSICS_SPEED;
+			physicsAccumulator += frameTime;
+			int steps = 0;
+			while (physicsAccumulator >= FIXED_TIMESTEP && steps < 5) {
+				worldbox.step(FIXED_TIMESTEP, 8, 3);
+				physicsAccumulator -= FIXED_TIMESTEP;
+				steps++;
+			}
 			MatZoom=camera.combined.cpy();
 			if (debug || showBox2DDebug)
 				debugRenderer.render(worldbox, MatZoom.scl(BOX_TO_WORLD));

@@ -17,6 +17,7 @@ import com.badlogic.gdx.utils.JsonValue;
 public class OnlineScoreService {
 
 	private static final String API_URL = "https://api.restful-api.dev/objects/ff808181a09d98f701a0df92f10c2041";
+	private static final String FALLBACK_URL = "http://forumpanhard.free.fr/fumper.txt";
 	private static final int TIMEOUT_MS = 6000;
 
 	public interface ScoreCallback {
@@ -30,7 +31,7 @@ public class OnlineScoreService {
 	}
 
 	/**
-	 * Récupère le high score en ligne de manière asynchrone.
+	 * Récupère le high score en ligne de manière asynchrone (avec secours automatique).
 	 */
 	public static void fetchHighScore(final ScoreCallback callback) {
 		HttpRequest request = new HttpRequest(HttpMethods.GET);
@@ -56,28 +57,81 @@ public class OnlineScoreService {
 							}
 							return;
 						}
-						if (callback != null) {
-							callback.onError("Structure JSON inattendue");
-						}
+						fetchFallback(callback, "Structure JSON inattendue");
 					} catch (Exception e) {
 						Gdx.app.error("OnlineScoreService", "Erreur parsing JSON", e);
-						if (callback != null) {
-							callback.onError("Parsing error: " + e.getMessage());
-						}
+						fetchFallback(callback, "Parsing error: " + e.getMessage());
 					}
 				} else {
-					Gdx.app.error("OnlineScoreService", "Fetch HTTP status: " + status);
-					if (callback != null) {
-						callback.onError("HTTP " + status);
-					}
+					Gdx.app.error("OnlineScoreService", "Fetch HTTP status: " + status + ", bascule vers fallback free.fr");
+					fetchFallback(callback, "HTTP " + status);
 				}
 			}
 
 			@Override
 			public void failed(Throwable t) {
-				Gdx.app.error("OnlineScoreService", "Fetch failed", t);
+				Gdx.app.error("OnlineScoreService", "Fetch failed: " + (t != null ? t.getMessage() : "erreur"), t);
+				fetchFallback(callback, t != null ? t.getMessage() : "Connexion impossible");
+			}
+
+			@Override
+			public void cancelled() {
 				if (callback != null) {
-					callback.onError(t != null ? t.getMessage() : "Connexion impossible");
+					callback.onError("Requete annulee");
+				}
+			}
+		});
+	}
+
+	/**
+	 * Fallback vers le fichier historique hébergé sur Free.fr
+	 */
+	private static void fetchFallback(final ScoreCallback callback, final String initialError) {
+		HttpRequest fallbackReq = new HttpRequest(HttpMethods.GET);
+		fallbackReq.setUrl(FALLBACK_URL);
+		fallbackReq.setTimeOut(TIMEOUT_MS);
+
+		Gdx.net.sendHttpRequest(fallbackReq, new HttpResponseListener() {
+			@Override
+			public void handleHttpResponse(HttpResponse httpResponse) {
+				int status = httpResponse.getStatus().getStatusCode();
+				if (status >= 200 && status < 300) {
+					try {
+						String text = httpResponse.getResultAsString();
+						String farmer = "baco";
+						int hs = 152;
+						String[] lines = text.split("[\\r\\n]+");
+						for (String line : lines) {
+							if (line.contains("=")) {
+								String[] parts = line.split("=", 2);
+								if (parts[0].trim().equalsIgnoreCase("farmer")) {
+									farmer = parts[1].trim();
+								} else if (parts[0].trim().equalsIgnoreCase("hs")) {
+									try {
+										hs = Integer.parseInt(parts[1].trim());
+									} catch (NumberFormatException ignored) {}
+								}
+							}
+						}
+						Gdx.app.log("OnlineScoreService", "Fallback success from free.fr: farmer=" + farmer + ", hs=" + hs);
+						if (callback != null) {
+							callback.onSuccess(farmer, hs);
+						}
+						return;
+					} catch (Exception e) {
+						Gdx.app.error("OnlineScoreService", "Fallback parsing error", e);
+					}
+				}
+				if (callback != null) {
+					callback.onError(initialError);
+				}
+			}
+
+			@Override
+			public void failed(Throwable t) {
+				Gdx.app.error("OnlineScoreService", "Fallback free.fr failed: " + (t != null ? t.getMessage() : "unknown"));
+				if (callback != null) {
+					callback.onError(initialError);
 				}
 			}
 

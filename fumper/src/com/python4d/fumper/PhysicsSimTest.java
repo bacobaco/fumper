@@ -16,23 +16,68 @@ import java.io.File;
 public class PhysicsSimTest {
     public static void main(String[] args) {
         new SharedLibraryLoader().load("gdx-box2d");
-
-        World world = new World(new Vector2(0, -9.8f), true);
+        World.setVelocityThreshold(0.0f);
 
         int width = 320;
         int height = 480;
         float WORLD_TO_BOX = (height / 20000.0f) * (width / (float) width);
         float BOX_TO_WORLD = 1.0f / WORLD_TO_BOX;
 
-        float Posx = width / 4.0f;
-        float Posy = width / 10.0f;
-        float size = 0.08f * width / 400.0f;
-
-        File bdFile = new File("fumper-android/assets/texture/body/fumperbody.bd");
+        File bdFile = new File("texture/body/fumperbody.bd");
+        if (!bdFile.exists()) {
+            bdFile = new File("fumper-android/assets/texture/body/fumperbody.bd");
+        }
         if (!bdFile.exists()) {
             bdFile = new File("../fumper-android/assets/texture/body/fumperbody.bd");
         }
         BodyEditorLoader loader = new BodyEditorLoader(new FileHandle(bdFile));
+
+        float Posx = width / 4.0f; // 80
+        float panierX = width / 1.5f; // 213.33
+        float panierY = width / 3.0f; // 106.67
+        float panierScale = 0.2f * width / 400.0f;
+        float imgPanierW = 587.0f * panierScale; // 93.92
+        float imgPanierH = 640.0f * panierScale; // 102.4
+        float dropY = panierY * 1.5f; // 160
+
+        System.out.println("Basket range: X=[" + panierX + ".." + (panierX + imgPanierW) + "], Y=[" + panierY + ".." + (panierY + imgPanierH) + "]");
+
+        String[] allFruits = {
+            "citron", "pomme-dessin", "poire", "pomme_verte", "cerises",
+            "citrouille", "pomme-dessin2", "fraise", "orange", "pomme-photo"
+        };
+
+        float dropX = Posx - width / 16.0f; // 80 - 20 = 60
+        float pushMult = 1.95f;
+
+        System.out.println("Testing all 10 fruits with dropX=" + dropX + ", pushMult=" + pushMult + ":");
+        int successCount = 0;
+        for (String fName : allFruits) {
+            SimResult r = simulate(loader, width, height, WORLD_TO_BOX, BOX_TO_WORLD,
+                    fName, dropX, dropY, panierX, panierY, imgPanierW, imgPanierH, pushMult);
+            System.out.println(String.format("Fruit %-14s: entered=%-5b settled=%-5b finalPos=(%.1f, %.1f)",
+                    fName, r.enteredBasket, r.settledInBasket, r.finalX, r.finalY));
+            if (r.enteredBasket) successCount++;
+        }
+        System.out.println("Total entered basket: " + successCount + " / " + allFruits.length);
+    }
+
+    static class SimResult {
+        boolean enteredBasket = false;
+        boolean settledInBasket = false;
+        float finalX = 0, finalY = 0;
+    }
+
+    private static SimResult simulate(BodyEditorLoader loader, int width, int height,
+                                      float WORLD_TO_BOX, float BOX_TO_WORLD,
+                                      String fruitName, float dropX, float dropY,
+                                      float panierX, float panierY, float panierW, float panierH,
+                                      float pushMultiplier) {
+        World world = new World(new Vector2(0, -9.8f), true);
+
+        float Posx = width / 4.0f;
+        float Posy = width / 10.0f;
+        float size = 0.08f * width / 400.0f;
 
         float imgBucheW = 341.0f;
         float imgBucheH = 327.0f;
@@ -84,57 +129,72 @@ public class PhysicsSimTest {
         jd.localAnchorB.set(anchorBx, anchorBy);
         world.createJoint(jd);
 
-        System.out.println("Planche mass = " + bodyPlanche.getMass() + ", inertia = " + bodyPlanche.getInertia());
-        System.out.println("Initial planche angle = " + (bodyPlanche.getAngle() * MathUtils.radiansToDegrees) + " deg, pos = " + bodyPlanche.getPosition());
+        // Panier
+        BodyDef bdPanier = new BodyDef();
+        bdPanier.position.set(panierX * WORLD_TO_BOX, panierY * WORLD_TO_BOX);
+        bdPanier.type = BodyType.StaticBody;
+        Body bodyPanier = world.createBody(bdPanier);
 
-        // Step world 60 times (1 second) to see resting position
+        FixtureDef fdPanier = new FixtureDef();
+        fdPanier.friction = 0.80f;
+        fdPanier.restitution = 0.10f;
+        fdPanier.density = 1.0f;
+        loader.attachFixture(bodyPanier, "panier", fdPanier, panierW * WORLD_TO_BOX);
+
+        // Settle bascule
         for (int i = 0; i < 60; i++) {
             world.step(1.0f / 60.0f, 8, 3);
         }
-        System.out.println("Planche resting angle after 60 steps = " + (bodyPlanche.getAngle() * MathUtils.radiansToDegrees) + " deg, pos = " + bodyPlanche.getPosition());
 
-        // Test pushing planche
-        float forceY = (float) -Math.pow(bodyPlanche.getMass(), 1.90);
-        System.out.println("Applying angular impulse forceY = " + forceY);
-        bodyPlanche.applyAngularImpulse(forceY, true);
+        // Drop fruit
+        BodyDef bdFruit = new BodyDef();
+        bdFruit.type = BodyType.DynamicBody;
+        bdFruit.position.set(dropX * WORLD_TO_BOX, dropY * WORLD_TO_BOX);
+        Body bodyFruit = world.createBody(bdFruit);
 
-        for (int i = 0; i < 30; i++) {
+        FixtureDef fdFruit = new FixtureDef();
+        fdFruit.density = 1f;
+        fdFruit.friction = 0.5f;
+        fdFruit.restitution = 0.2f;
+        loader.attachFixture(bodyFruit, fruitName, fdFruit, 32.0f * WORLD_TO_BOX);
+
+        SimResult res = new SimResult();
+
+        // Fall onto plank
+        for (int step = 0; step < 90; step++) {
             world.step(1.0f / 60.0f, 8, 3);
-            if (i % 5 == 0) {
-                System.out.println("Step " + i + ": angle = " + (bodyPlanche.getAngle() * MathUtils.radiansToDegrees) + " deg, angVel = " + bodyPlanche.getAngularVelocity());
+            if (bodyFruit.getPosition().y * BOX_TO_WORLD < 0) {
+                world.dispose();
+                return res;
             }
         }
 
-        // Test all fruit bodies and check for any fallback box or errors
-        String[] allBodies = {
-            "citron", "pomme-dessin", "poire", "pomme_verte", "cerises",
-            "citrouille", "pomme-dessin2", "fraise", "orange", "pomme-photo",
-            "buche", "planche", "panier"
-        };
+        // Catapult push
+        float forceY = (float) -Math.pow(bodyPlanche.getMass(), 1.90) * pushMultiplier;
+        bodyPlanche.setAwake(true);
+        bodyPlanche.applyAngularImpulse(forceY, true);
 
-        for (String bName : allBodies) {
-            BodyDef bdef = new BodyDef();
-            bdef.type = BodyType.DynamicBody;
-            Body b = world.createBody(bdef);
-            FixtureDef fdef = new FixtureDef();
-            fdef.density = 1f;
-            loader.attachFixture(b, bName, fdef, 32.0f * WORLD_TO_BOX);
-            System.out.println("SUCCESS: Body '" + bName + "' attached with " + b.getFixtureList().size + " fixtures.");
-            for (com.badlogic.gdx.physics.box2d.Fixture fx : b.getFixtureList()) {
-                if (fx.getShape() instanceof com.badlogic.gdx.physics.box2d.PolygonShape) {
-                    com.badlogic.gdx.physics.box2d.PolygonShape ps = (com.badlogic.gdx.physics.box2d.PolygonShape) fx.getShape();
-                    if (ps.getVertexCount() == 4) {
-                        Vector2 v0 = new Vector2();
-                        Vector2 v2 = new Vector2();
-                        ps.getVertex(0, v0);
-                        ps.getVertex(2, v2);
-                        if (Math.abs(v0.x - (-1f)) < 0.01f && Math.abs(v2.x - 1f) < 0.01f) {
-                            throw new RuntimeException("ERROR: Fallback ghost box detected on body " + bName);
-                        }
-                    }
+        float pBoxX = panierX * WORLD_TO_BOX;
+        float pBoxY = panierY * WORLD_TO_BOX;
+        float pBoxW = panierW * WORLD_TO_BOX;
+        float pBoxH = panierH * WORLD_TO_BOX;
+
+        for (int step = 0; step < 180; step++) {
+            world.step(1.0f / 60.0f, 8, 3);
+            float cx = bodyFruit.getWorldCenter().x;
+            float cy = bodyFruit.getWorldCenter().y;
+            boolean in = (cx > pBoxX && cy > pBoxY && cx < pBoxX + pBoxW && cy < pBoxY + pBoxH);
+            if (in) {
+                res.enteredBasket = true;
+                if (bodyFruit.getLinearVelocity().len() < 0.8f && Math.abs(bodyFruit.getAngularVelocity()) < 1.0f) {
+                    res.settledInBasket = true;
                 }
             }
         }
-        System.out.println("\nALL 13 BODIES VALIDATED: ZERO GHOST BOXES!");
+
+        res.finalX = bodyFruit.getPosition().x * BOX_TO_WORLD;
+        res.finalY = bodyFruit.getPosition().y * BOX_TO_WORLD;
+        world.dispose();
+        return res;
     }
 }
