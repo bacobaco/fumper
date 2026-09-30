@@ -14,9 +14,9 @@ La version **2.0** étend Fumper sur 3 plateformes modernes :
 | 💻 **PC / Desktop** | `fumper-desktop` | Version de bureau (Windows, Linux, macOS). | `run.bat` |
 | 🌐 **Web HTML5** | `fumper-html` | Version Web jouable directement dans le navigateur. | `run-html.bat` |
 
-> [!WARNING]
-> **Note sur la version HTML5 :**
-> La version Web HTML5 fonctionne dans le navigateur via GWT/Canvas, mais présente encore des bugs physiques (collisions avec des obstacles invisibles déviant parfois la chute des fruits) qui seront corrigés dans une mise à jour ultérieure.
+> [!TIP]
+> **Contrôles du Panier (Desktop & Web HTML5) :**
+> Sur Android, l'orientation du panier utilise l'accéléromètre du smartphone. Sur PC et Web HTML5, l'accéléromètre est fidèlement simulé avec les flèches du clavier (`←`, `→`, `↑`, `↓`) ou les touches `ZQSD` / `WASD`. La hauteur du panier augmente au fil des niveaux de façon identique sur toutes les plateformes.
 
 ---
 

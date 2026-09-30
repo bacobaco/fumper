@@ -1,6 +1,8 @@
 package com.python4d.fumper;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.Input.Peripheral;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas.AtlasRegion;
 import com.badlogic.gdx.math.MathUtils;
@@ -135,19 +137,63 @@ public class Panier {
 
 	}
 	
-	public float[] getAcc(){
-		float x=0,y=0,z=0;
-	
-		if (Gdx.input.isPeripheralAvailable( Peripheral.Accelerometer ))
-		{
-			x=Gdx.input.getAccelerometerX();// points to the right (when in portrait orientation)
-			y=Gdx.input.getAccelerometerY();// points upwards (when in portrait orientation)
-			z=Gdx.input.getAccelerometerZ();// points to the front of the display (coming out of the screen)
+	private float simAccX = 0f;
+	private float simAccY = 10f;
+	protected float oldx = 0, oldy = 0;
+
+	public float[] getAcc() {
+		float x = 0, y = 10f, z = 0;
+
+		if (Gdx.input.isPeripheralAvailable(Peripheral.Accelerometer)) {
+			x = Gdx.input.getAccelerometerX();
+			y = Gdx.input.getAccelerometerY();
+			z = Gdx.input.getAccelerometerZ();
+		} else {
+			// Simulation de l'accéléromètre au clavier (Desktop / Web HTML5)
+			float targetSimX = 0f;
+			float targetSimY = 10f;
+
+			if (Gdx.input.isKeyPressed(Keys.LEFT) || Gdx.input.isKeyPressed(Keys.A) || Gdx.input.isKeyPressed(Keys.Q)) {
+				targetSimX = 6.0f; // simule inclinaison vers la gauche
+			} else if (Gdx.input.isKeyPressed(Keys.RIGHT) || Gdx.input.isKeyPressed(Keys.D)) {
+				targetSimX = -6.0f; // simule inclinaison vers la droite
+			}
+
+			if (Gdx.input.isKeyPressed(Keys.UP) || Gdx.input.isKeyPressed(Keys.W) || Gdx.input.isKeyPressed(Keys.Z)) {
+				targetSimY = 3.0f; // simule inclinaison arrière -> monte le panier (10 - 3 = +7)
+			} else if (Gdx.input.isKeyPressed(Keys.DOWN) || Gdx.input.isKeyPressed(Keys.S)) {
+				targetSimY = 15.0f; // simule inclinaison avant -> descend le panier (10 - 15 = -5)
+			}
+
+			simAccX += (targetSimX - simAccX) * 0.15f;
+			simAccY += (targetSimY - simAccY) * 0.15f;
+			x = simAccX;
+			y = simAccY;
 		}
-		return new float[] { x,y,z };
+		return new float[] { x, y, z };
 	}
-	
+
 	public void update() {
+		float newx = oldx, newy = oldy;
+		float vitesse = 0.2f;
+		float taille = 0.2f;
+
+		float[] acc = getAcc();
+
+		if (acc[0] > newx + 1)
+			newx += vitesse;
+		if (acc[0] < newx - 1)
+			newx -= vitesse;
+		if (acc[1] > newy + 1)
+			newy += vitesse;
+		if (acc[1] < newy - 1)
+			newy -= vitesse;
+
+		// Déplacement du panier selon l'accéléromètre (physique sur Android, simulé aux flèches sur PC/Web)
+		getBodyPanier().setTransform(getPosxW() - newx * taille, getPosyW() + (10.0f - newy) * taille, 0);
+
+		oldx = newx;
+		oldy = newy;
 		imgPanier.setPosition(bodyPanier.getPosition().x
 				* AbstractScreen.BOX_TO_WORLD, bodyPanier.getPosition().y
 				* AbstractScreen.BOX_TO_WORLD);
@@ -158,7 +204,6 @@ public class Panier {
 				* AbstractScreen.BOX_TO_WORLD);
 		imgPanier_front.setRotation(bodyPanier.getAngle()
 				* MathUtils.radiansToDegrees);
-		
 	}
 
 	public int check_fruits_in() {

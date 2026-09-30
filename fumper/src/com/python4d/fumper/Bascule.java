@@ -161,7 +161,7 @@ public class Bascule{
 	public void push(int level) {
 		if (TimeUtils.millis()-lasttime_push>100){
 			lasttime_push=TimeUtils.millis();
-			float forceY = (float) -Math.pow(bodyPlanche.getMass(), 1.90) * (1.68f + (level - 1) * 0.025f);
+			float forceY = (float) -Math.pow(bodyPlanche.getMass(), 1.90) * (1.75f + (level - 1) * 0.035f);
 			bodyPlanche.setAwake(true);
 			bodyPlanche.applyAngularImpulse(forceY, true);
 			Gdx.app.log("Fumper/Bascule/push()", ": forceY=" + forceY + " mass=" + bodyPlanche.getMass() + " angle=" + (bodyPlanche.getAngle()*MathUtils.radiansToDegrees) + " angVel=" + bodyPlanche.getAngularVelocity());
