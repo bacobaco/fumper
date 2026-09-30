@@ -147,27 +147,7 @@ public class Panier {
 		return new float[] { x,y,z };
 	}
 	
-	protected float oldx=0,oldy=0;
 	public void update() {
-		
-		float newx = oldx,newy=oldy;
-		float vitesse = 0.2f;
-		float taille = 0.2f;
-		
-		if (getAcc()[0]>newx+1) 
-			newx+=vitesse;
-		if (getAcc()[0]<newx-1) 
-			newx-=vitesse;
-		if (getAcc()[1]>newy+1)
-			newy+=vitesse;
-		if (getAcc()[1]<newy-1)
-			newy-=vitesse;
-		if (Gdx.input.isPeripheralAvailable( Peripheral.Accelerometer ))
-		{
-			getBodyPanier().setTransform(getPosxW()-newx*taille,	getPosyW()+(10.0f-newy)*taille,0);
-		}
-		oldx=newx;
-		oldy=newy;
 		imgPanier.setPosition(bodyPanier.getPosition().x
 				* AbstractScreen.BOX_TO_WORLD, bodyPanier.getPosition().y
 				* AbstractScreen.BOX_TO_WORLD);

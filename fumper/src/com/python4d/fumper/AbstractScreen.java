@@ -51,7 +51,7 @@ public abstract class AbstractScreen implements Screen {
 	protected World worldbox;
 	private float physicsAccumulator = 0.0f;
 	private static final float FIXED_TIMESTEP = 1.0f / 60.0f;
-	private static final float PHYSICS_SPEED = 1.25f;
+	private static final float PHYSICS_SPEED = 1.0f;
 	private Box2DDebugRenderer debugRenderer;
 	private OrthographicCamera camera;
 	private Matrix4 MatZoom;

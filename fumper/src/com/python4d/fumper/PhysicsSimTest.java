@@ -18,11 +18,6 @@ public class PhysicsSimTest {
         new SharedLibraryLoader().load("gdx-box2d");
         World.setVelocityThreshold(0.0f);
 
-        int width = 320;
-        int height = 480;
-        float WORLD_TO_BOX = (height / 20000.0f) * (width / (float) width);
-        float BOX_TO_WORLD = 1.0f / WORLD_TO_BOX;
-
         File bdFile = new File("texture/body/fumperbody.bd");
         if (!bdFile.exists()) {
             bdFile = new File("fumper-android/assets/texture/body/fumperbody.bd");
@@ -32,40 +27,34 @@ public class PhysicsSimTest {
         }
         BodyEditorLoader loader = new BodyEditorLoader(new FileHandle(bdFile));
 
-        float Posx = width / 4.0f; // 80
-        float panierX = width / 1.5f; // 213.33
-        float panierY = width / 3.0f; // 106.67
+        int width = 320;
+        int height = 480;
+        float actual_W2B = (480.0f / 20000.0f) * 320.0f / (float) width;
+        float actual_B2W = 1.0f / actual_W2B;
+
+        float Posx = width / 4.0f;
+        float panierX = width / 1.5f;
+        float panierY = width / 3.0f;
         float panierScale = 0.2f * width / 400.0f;
-        float imgPanierW = 587.0f * panierScale; // 93.92
-        float imgPanierH = 640.0f * panierScale; // 102.4
-        float dropY = panierY * 1.5f; // 160
+        float imgPanierW = 587.0f * panierScale;
+        float imgPanierH = 640.0f * panierScale;
+        float dropY = panierY * 1.5f;
+        float dropX = Posx - width / 15.0f;
 
-        System.out.println("Basket range: X=[" + panierX + ".." + (panierX + imgPanierW) + "], Y=[" + panierY + ".." + (panierY + imgPanierH) + "]");
+        System.out.println("Panier Y range in pixels: " + panierY + " to " + (panierY + imgPanierH));
 
-        String[] allFruits = {
-            "citron", "pomme-dessin", "poire", "pomme_verte", "cerises",
-            "citrouille", "pomme-dessin2", "fraise", "orange", "pomme-photo"
-        };
-
-        float dropX = Posx - width / 16.0f; // 80 - 20 = 60
-        float pushMult = 1.95f;
-
-        System.out.println("Testing all 10 fruits with dropX=" + dropX + ", pushMult=" + pushMult + ":");
-        int successCount = 0;
-        for (String fName : allFruits) {
-            SimResult r = simulate(loader, width, height, WORLD_TO_BOX, BOX_TO_WORLD,
-                    fName, dropX, dropY, panierX, panierY, imgPanierW, imgPanierH, pushMult);
-            System.out.println(String.format("Fruit %-14s: entered=%-5b settled=%-5b finalPos=(%.1f, %.1f)",
-                    fName, r.enteredBasket, r.settledInBasket, r.finalX, r.finalY));
-            if (r.enteredBasket) successCount++;
+        for (float k = 1.6f; k <= 2.5f; k += 0.15f) {
+            SimResult r = simulate(loader, width, height, actual_W2B, actual_B2W, "citron", dropX, dropY, panierX, panierY, imgPanierW, imgPanierH, k);
+            System.out.println(String.format("k=%.2f: entered=%-5b settled=%-5b maxY=%.1f (%.1f%% above basket top) finalPos=(%.1f, %.1f)",
+                    k, r.enteredBasket, r.settledInBasket, r.maxY, ((r.maxY - (panierY + imgPanierH)) / (panierY + imgPanierH)) * 100f, r.finalX, r.finalY));
         }
-        System.out.println("Total entered basket: " + successCount + " / " + allFruits.length);
     }
 
     static class SimResult {
         boolean enteredBasket = false;
         boolean settledInBasket = false;
         float finalX = 0, finalY = 0;
+        float maxY = 0;
     }
 
     private static SimResult simulate(BodyEditorLoader loader, int width, int height,
@@ -136,8 +125,8 @@ public class PhysicsSimTest {
         Body bodyPanier = world.createBody(bdPanier);
 
         FixtureDef fdPanier = new FixtureDef();
-        fdPanier.friction = 0.80f;
-        fdPanier.restitution = 0.10f;
+        fdPanier.friction = 0.75f;
+        fdPanier.restitution = 0.15f;
         fdPanier.density = 1.0f;
         loader.attachFixture(bodyPanier, "panier", fdPanier, panierW * WORLD_TO_BOX);
 
@@ -179,10 +168,15 @@ public class PhysicsSimTest {
         float pBoxW = panierW * WORLD_TO_BOX;
         float pBoxH = panierH * WORLD_TO_BOX;
 
+        float maxObservedY = 0;
+
         for (int step = 0; step < 180; step++) {
             world.step(1.0f / 60.0f, 8, 3);
             float cx = bodyFruit.getWorldCenter().x;
             float cy = bodyFruit.getWorldCenter().y;
+            float py = cy * BOX_TO_WORLD;
+            if (py > maxObservedY) maxObservedY = py;
+
             boolean in = (cx > pBoxX && cy > pBoxY && cx < pBoxX + pBoxW && cy < pBoxY + pBoxH);
             if (in) {
                 res.enteredBasket = true;
@@ -192,6 +186,7 @@ public class PhysicsSimTest {
             }
         }
 
+        res.maxY = maxObservedY;
         res.finalX = bodyFruit.getPosition().x * BOX_TO_WORLD;
         res.finalY = bodyFruit.getPosition().y * BOX_TO_WORLD;
         world.dispose();
